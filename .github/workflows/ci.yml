@@ -23,7 +23,7 @@ jobs:
           "checkoutservice",
           "recommendationservice",
           "adservice",
-          "shoppingassistantservice"
+          "loadgenerator"
         ]
     
     steps:
