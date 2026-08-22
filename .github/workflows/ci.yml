@@ -46,8 +46,18 @@ jobs:
           SERVICE: ${{ matrix.service }}
         run: |
           echo "Building $SERVICE..."
-          cd src/$SERVICE
-
+          
+          # The Architecture of Resilience: Handle the C# cartservice exception
+          if [ "$SERVICE" == "cartservice" ]; then
+            BUILD_DIR="src/$SERVICE/src"
+          else
+            BUILD_DIR="src/$SERVICE"
+          fi
+          
+          echo "Navigating to $BUILD_DIR..."
+          cd $BUILD_DIR
+          
+          # The Via Negativa: Silence upstream telemetry during build if necessary
           docker build -t $SERVICE:latest .
           docker tag $SERVICE:latest $ECR_REGISTRY/$SERVICE:latest
           docker push $ECR_REGISTRY/$SERVICE:latest
