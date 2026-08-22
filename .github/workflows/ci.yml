@@ -1,0 +1,53 @@
+name: Build and Push Images to ECR
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          "cartservice",
+          "currencyservice",
+          "paymentservice",
+          "shippingservice",
+          "emailservice",
+          "checkoutservice",
+          "recommendationservice",
+          "adservice",
+          "shoppingassistantservice"
+        ]
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::767397659229:role/online-boutique-github-deploy-role
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Artifacts
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SERVICE: ${{ matrix.service }}
+        run: |
+          echo "Building $SERVICE..."
+          cd src/$SERVICE
+
+          docker build -t $SERVICE:latest .
+          docker tag $SERVICE:latest $ECR_REGISTRY/$SERVICE:latest
+          docker push $ECR_REGISTRY/$SERVICE:latest
