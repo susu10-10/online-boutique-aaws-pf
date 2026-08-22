@@ -30,18 +30,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v7
 
-      - name: Extract Zero-Trust Telemetry
-        run: |
-          echo "=========================================================="
-          echo "ZERO-TRUST DIAGNOSTICS"
-          echo "=========================================================="
-          echo "The exact repository string is: ${{ github.repository }}"
-          echo "The exact branch reference is: ${{ github.ref }}"
-          echo "=========================================================="
-          echo "Your AWS IAM 'subjects' array MUST exactly match this:"
-          echo "repo:${{ github.repository }}:ref:${{ github.ref }}"
-          echo "=========================================================="
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:

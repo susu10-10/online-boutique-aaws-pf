@@ -50,7 +50,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
   })
 }
 
-# Gh Action Deploy Role
+# Gh Action Deploy/Assume  Role with Trust Relationship 
 
 module "iam_iam-github-oidc-role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
@@ -59,7 +59,8 @@ module "iam_iam-github-oidc-role" {
   name = "${var.project_name}-github-deploy-role"
 
   # deployments from main branch are allowed only
-  subjects = ["repo:susu10-10/online-boutique-aaws-pf:ref:refs/heads/main"]
+  # subjects = ["repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/main"]
+  subjects = ["repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:ref:refs/heads/main"]
 
   policies = {
     DeployPolicy = aws_iam_policy.github_deploy_policy.arn
