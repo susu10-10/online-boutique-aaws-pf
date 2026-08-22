@@ -60,7 +60,19 @@ module "iam_iam-github-oidc-role" {
 
   # deployments from main branch are allowed only
   # subjects = ["repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/main"]
-  subjects = ["repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:ref:refs/heads/main"]
+  subjects = [
+    "repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:ref:refs/heads/main",
+    "repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:pull_request"
+    ]
+  # # The Expanded Zero-Trust Boundary
+  # subjects = [
+  #   # Allow the main branch
+  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/main",
+  #   # Allow any feature branch
+  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/*",
+  #   # Allow Pull Request triggers
+  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:pull_request"
+  # ]
 
   policies = {
     DeployPolicy = aws_iam_policy.github_deploy_policy.arn
