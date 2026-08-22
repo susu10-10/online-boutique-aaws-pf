@@ -1,30 +1,24 @@
-name: Build and Push Images to ECR
+name: "Terraform Infrastructure Pipeline"
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 permissions:
   id-token: write
   contents: read
-  security-events: write  # Required to upload SARIF files to Security tab
+  pull-requests: write 
 
 jobs:
-  build-and-push:
+  terraform:
+    name: "Terraform Apply & Plan"
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        service: [
-          "cartservice",
-          "currencyservice",
-          "paymentservice",
-          "shippingservice",
-          "emailservice",
-          "checkoutservice",
-          "recommendationservice",
-          "adservice",
-          "loadgenerator"
-        ]
-    
+    defaults:
+      run:
+        working-directory: ./infrastructure/envs/prod
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
@@ -32,45 +26,62 @@ jobs:
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:
+          # Use your exact IAM Role ARN here
           role-to-assume: arn:aws:iam::767397659229:role/online-boutique-github-deploy-role
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.5.7" # Lock your version for immutability
 
-      - name: Build, Tag, and Push Artifacts
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      # The Accountability Layer: Post the plan to the GitHub PR
+      - name: Update Pull Request
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          SERVICE: ${{ matrix.service }}
-        run: |
-          echo "Building $SERVICE..."
-          
-          if [ "$SERVICE" == "cartservice" ]; then
-            BUILD_DIR="src/$SERVICE/src"
-          else
-            BUILD_DIR="src/$SERVICE"
-          fi
-          
-          echo "Navigating to $BUILD_DIR..."
-          cd $BUILD_DIR
-          
-          docker build -t $SERVICE:latest .
-          
-          docker tag $SERVICE:latest $ECR_REGISTRY/online-boutique/$SERVICE:latest
-          docker push $ECR_REGISTRY/online-boutique/$SERVICE:latest
-
-      - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@v0.36.0
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
-          image-ref: '${{ steps.login-ecr.outputs.registry }}/online-boutique/${{ matrix.service }}:latest'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+            
+            </details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
-      - name: Upload Trivy Scan Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-results.sarif'
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
 
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
