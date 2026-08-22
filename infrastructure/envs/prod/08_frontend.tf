@@ -50,7 +50,12 @@ module "frontend_service" {
         { name = "SHIPPING_SERVICE_ADDR", value = "shippingservice.onlineboutique.internal:50051" },
         { name = "CHECKOUT_SERVICE_ADDR", value = "checkoutservice.onlineboutique.internal:5050" },
         { name = "AD_SERVICE_ADDR", value = "adservice.onlineboutique.internal:9555" },
-        { name = "SHOPPING_ASSISTANT_SERVICE_ADDR", value = "shoppingassistantservice.onlineboutique.internal:80" }
+        { name = "SHOPPING_ASSISTANT_SERVICE_ADDR", value = "shoppingassistantservice.onlineboutique.internal:80" },
+        { name = "ENV_PLATFORM", value = "local" },
+        { name = "ENABLE_TRACING", value = "0" },
+        { name = "ENABLE_PROFILER", value = "0" },
+        { name = "CYMBAL_BRANDING", value = "false" },
+        { name = "ENABLE_ASSISTANT", value = "false" }
       ]
 
     }
