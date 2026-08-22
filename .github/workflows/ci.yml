@@ -47,7 +47,6 @@ jobs:
         run: |
           echo "Building $SERVICE..."
           
-          # The Architecture of Resilience: Handle the C# cartservice exception
           if [ "$SERVICE" == "cartservice" ]; then
             BUILD_DIR="src/$SERVICE/src"
           else
@@ -57,7 +56,8 @@ jobs:
           echo "Navigating to $BUILD_DIR..."
           cd $BUILD_DIR
           
-          # The Via Negativa: Silence upstream telemetry during build if necessary
           docker build -t $SERVICE:latest .
-          docker tag $SERVICE:latest $ECR_REGISTRY/$SERVICE:latest
-          docker push $ECR_REGISTRY/$SERVICE:latest
+          
+          docker tag $SERVICE:latest $ECR_REGISTRY/online-boutique/$SERVICE:latest
+          docker push $ECR_REGISTRY/online-boutique/$SERVICE:latest
+
