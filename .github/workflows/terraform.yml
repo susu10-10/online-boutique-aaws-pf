@@ -43,11 +43,11 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: terraform plan -no-color
         continue-on-error: true
 
-      # The Accountability Layer: Post the plan to the GitHub PR
+      # This will Post the plan to the GitHub PR
       - name: Update Pull Request
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
