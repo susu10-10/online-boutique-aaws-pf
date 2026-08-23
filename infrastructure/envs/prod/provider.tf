@@ -9,5 +9,5 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = "tf-deployer"
+  #profile = "tf-deployer"
 }
