@@ -41,15 +41,15 @@ resource "aws_cognito_user_pool_client" "boutique_frontend_client" {
 
   # The UI Integration Matrix
   supported_identity_providers = ["COGNITO"]
-  callback_urls                = ["https://suworks.me/"] 
+  callback_urls                = ["https://suworks.me/"]
   logout_urls                  = ["https://suworks.me/"]
 
   # Enforce strict OAuth 2.0 protocol
   allowed_oauth_flows_user_pool_client = true
-  
+
   # "implicit" returns the token directly in the browser URL
-  allowed_oauth_flows                  = ["implicit", "code"]
-  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+  allowed_oauth_flows  = ["implicit", "code"]
+  allowed_oauth_scopes = ["email", "openid", "profile"]
 }
 
 
@@ -129,6 +129,6 @@ resource "aws_apigatewayv2_stage" "default_stage" {
 resource "aws_cognito_user_pool_domain" "boutique_ui" {
   # WARNING: This domain prefix must be globally unique across all of AWS.
   # If it fails, add a random number to the end of the string.
-  domain       = "suworks-boutique-auth-page" 
+  domain       = "suworks-boutique-auth-page"
   user_pool_id = aws_cognito_user_pool.boutique_users.id
 }

@@ -45,6 +45,20 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Effect   = "Allow"
         Action   = ["iam:PassRole"]
         Resource = [aws_iam_role.ecs_task_execution_role.arn, aws_iam_role.ecs_task_role.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:HeadObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::online-boutique-tfstate-767397659229",
+          "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
+        ]
       }
     ]
   })
