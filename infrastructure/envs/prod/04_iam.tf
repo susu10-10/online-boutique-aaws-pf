@@ -60,289 +60,115 @@ module "iam_iam-github-oidc-provider" {
 #           "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
 #         ]
 #       },
-#       # IAM role/provider reads
-#       {
-#         Effect = "Allow"
-#         Action = ["iam:GetRole"]
-#         Resource = [
-#           "arn:aws:iam::767397659229:role/online-boutique-ecs-task-execution-role",
-#           "arn:aws:iam::767397659229:role/online-boutique-ecs-task-role",
-#           "arn:aws:iam::767397659229:role/online-boutique-lambda-event-role",
-#           "arn:aws:iam::767397659229:role/online-boutique-github-deploy-role"
-#         ]
-#       },
-#       {
-#         Effect = "Allow"
-#         Action = ["iam:GetOpenIDConnectProvider"]
-#         Resource = [
-#           "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
-#         ]
-#       },
-
-#       # Route 53
-#       {
-#         Effect   = "Allow"
-#         Action   = ["route53:GetHostedZone"]
-#         Resource = ["arn:aws:route53:::hostedzone/Z09119203ES24GTLS3WTL"]
-#       },
-
-#       # SNS
-#       {
-#         Effect   = "Allow"
-#         Action   = ["sns:GetTopicAttributes"]
-#         Resource = ["arn:aws:sns:us-east-1:767397659229:online-boutique-order-notifications"]
-#       },
-
-#       # SQS
-#       {
-#         Effect   = "Allow"
-#         Action   = ["sqs:GetQueueAttributes"]
-#         Resource = ["arn:aws:sqs:us-east-1:767397659229:online-boutique-orders"]
-#       },
-
-#       # SSM Parameters
-#       {
-#         Effect   = "Allow"
-#         Action   = ["ssm:GetParameter"]
-#         Resource = ["arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/prod/*"]
-#       },
-
-#       # Cognito
-#       {
-#         Effect   = "Allow"
-#         Action   = ["cognito-idp:DescribeUserPool"]
-#         Resource = ["arn:aws:cognito-idp:us-east-1:767397659229:userpool/us-east-1_ht38iFf0D"]
-#       },
-
-#       # API Gateway v2
-#       {
-#         Effect   = "Allow"
-#         Action   = ["apigateway:GET"]
-#         Resource = ["arn:aws:apigateway:us-east-1::/apis/48l9obgib4"]
-#       },
-
-#       # ACM certificate
-#       {
-#         Effect   = "Allow"
-#         Action   = ["acm:DescribeCertificate"]
-#         Resource = ["arn:aws:acm:us-east-1:767397659229:certificate/48c23dc1-d6b8-4297-b6d4-71e2fd61890c"]
-#       },
-
-#       # ECR repository reads
-#       {
-#         Effect   = "Allow"
-#         Action   = ["ecr:DescribeRepositories"]
-#         Resource = ["arn:aws:ecr:us-east-1:767397659229:repository/online-boutique/*"]
-#       },
-
-#       # EC2 VPC read/refresh
-#       {
-#         Effect   = "Allow"
-#         Action   = ["ec2:DescribeVpcs"]
-#         Resource = ["*"]
-#       },
-
-#       # CloudWatch Logs read/refresh
-#       {
-#         Effect   = "Allow"
-#         Action   = ["logs:DescribeLogGroups"]
-#         Resource = ["*"]
-#       }
 #     ]
 #   })
 # }
+
 resource "aws_iam_policy" "github_deploy_policy" {
   name        = "${var.project_name}-github-deploy-policy"
   description = "Permissions for GitHub Actions to plan and apply the full online-boutique stack"
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-
-      # ---------- ECR ----------
       {
-        Effect   = "Allow"
-        Action   = ["ecr:GetAuthorizationToken"]
-        Resource = "*"
-      },
-      {
+        # 1. Edge & Identity (API GW, Cognito, ACM, Route53)
         Effect = "Allow"
-        Action = ["ecr:*"]
+        Action = [
+          "apigateway:*",
+          "cognito-idp:*",
+          "acm:DescribeCertificate",
+          "acm:ListCertificates",
+          "acm:ListTagsForCertificate",
+          "route53:GetHostedZone",
+          "route53:ListHostedZones",
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+          "route53:GetChange"
+        ]
         Resource = [
-          "arn:aws:ecr:us-east-1:767397659229:repository/online-boutique/*"
+          "arn:aws:apigateway:us-east-1::/*",
+          "arn:aws:cognito-idp:us-east-1:767397659229:userpool/*",
+          "arn:aws:acm:us-east-1:767397659229:certificate/*",
+          "arn:aws:route53:::hostedzone/*",
+          "arn:aws:route53:::change/*"
         ]
       },
-
-      # ---------- ECS ----------
-      # ECS actions generally require "*" as the resource.
       {
-        Effect   = "Allow"
-        Action   = ["ecs:*"]
+        # 2. Compute, Network & Routing (ECS, EC2, ELB, Servicediscovery, Autoscaling)
+        Effect = "Allow"
+        Action = [
+          "ecs:*",
+          "ec2:*",
+          "elasticloadbalancing:*",
+          "servicediscovery:*",
+          "application-autoscaling:*"
+        ]
         Resource = "*"
       },
-
-      # ---------- IAM ----------
-      # Manage only the roles/policies/OIDC provider created by this project.
       {
+        # 3. Serverless Bridge & Cryptographic Vault (SQS, SNS, Lambda, SSM, ECR)
         Effect = "Allow"
-        Action = ["iam:*"]
+        Action = [
+          "sqs:*",
+          "sns:*",
+          "lambda:*",
+          "ssm:*",
+          "ecr:*"
+        ]
         Resource = [
-          "arn:aws:iam::767397659229:role/online-boutique-*",
-          "arn:aws:iam::767397659229:policy/online-boutique-*",
+          "arn:aws:sqs:us-east-1:767397659229:*",
+          "arn:aws:sns:us-east-1:767397659229:*",
+          "arn:aws:lambda:us-east-1:767397659229:function:*",
+          "arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/*",
+          "arn:aws:ecr:us-east-1:767397659229:repository/*"
+        ]
+      },
+      {
+        # 4. Observability (CloudWatch Logs)
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DescribeLogGroups",
+          "logs:ListTagsLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:PutRetentionPolicy"
+        ]
+        Resource = "arn:aws:logs:us-east-1:767397659229:log-group:*"
+      },
+      {
+        # 5. IAM Automation 
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+          "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
+          "iam:PassRole", "iam:GetPolicy", "iam:GetPolicyVersion", "iam:CreatePolicy",
+          "iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
+          "iam:ListPolicyVersions", "iam:GetOpenIDConnectProvider"
+        ]
+        Resource = [
+          "arn:aws:iam::767397659229:role/*",
+          "arn:aws:iam::767397659229:policy/*",
           "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
         ]
       },
       {
-        Effect = "Allow"
-        Action = [
-          "iam:ListRoles",
-          "iam:ListPolicies",
-          "iam:ListOpenIDConnectProviders",
-          "iam:GetAccountSummary"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = ["iam:PassRole"]
-        Resource = [
-          "arn:aws:iam::767397659229:role/online-boutique-ecs-task-execution-role",
-          "arn:aws:iam::767397659229:role/online-boutique-ecs-task-role",
-          "arn:aws:iam::767397659229:role/online-boutique-lambda-event-role"
-        ]
-      },
-
-      # ---------- Route 53 ----------
-      {
-        Effect = "Allow"
-        Action = ["route53:*"]
-        Resource = [
-          "arn:aws:route53:::hostedzone/Z09119203ES24GTLS3WTL"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ListHostedZones",
-          "route53:GetChange"
-        ]
-        Resource = "*"
-      },
-
-      # ---------- SNS ----------
-      {
-        Effect = "Allow"
-        Action = ["sns:*"]
-        Resource = [
-          "arn:aws:sns:us-east-1:767397659229:online-boutique-order-notifications"
-        ]
-      },
-
-      # ---------- SQS ----------
-      {
-        Effect = "Allow"
-        Action = ["sqs:*"]
-        Resource = [
-          "arn:aws:sqs:us-east-1:767397659229:online-boutique-orders"
-        ]
-      },
-
-      # ---------- SSM Parameter Store ----------
-      {
-        Effect = "Allow"
-        Action = ["ssm:*"]
-        Resource = [
-          "arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/prod/*"
-        ]
-      },
-
-      # ---------- Cognito ----------
-      {
-        Effect = "Allow"
-        Action = ["cognito-idp:*"]
-        Resource = [
-          "arn:aws:cognito-idp:us-east-1:767397659229:userpool/us-east-1_ht38iFf0D"
-        ]
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["cognito-idp:ListUserPools"]
-        Resource = "*"
-      },
-
-      # ---------- API Gateway v2 ----------
-      {
-        Effect = "Allow"
-        Action = ["apigateway:*"]
-        Resource = [
-          "arn:aws:apigateway:us-east-1::/apis/*"
-        ]
-      },
-
-      # ---------- ACM ----------
-      {
-        Effect = "Allow"
-        Action = ["acm:*"]
-        Resource = [
-          "arn:aws:acm:us-east-1:767397659229:certificate/*"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "acm:RequestCertificate",
-          "acm:ListCertificates"
-        ]
-        Resource = "*"
-      },
-
-      # ---------- EC2 / VPC ----------
-      # The VPC module uses a very large number of EC2 APIs.
-      # Broad EC2 access is the safest way to avoid apply failures.
-      {
-        Effect   = "Allow"
-        Action   = ["ec2:*"]
-        Resource = "*"
-      },
-
-      # ---------- CloudWatch Logs ----------
-      {
-        Effect = "Allow"
-        Action = ["logs:*"]
-        Resource = [
-          "arn:aws:logs:us-east-1:767397659229:log-group:*"
-        ]
-      },
-
-      # ---------- Lambda ----------
-      # If your stack includes Lambda functions (likely from 12_serverless.tf).
-      {
-        Effect = "Allow"
-        Action = ["lambda:*"]
-        Resource = [
-          "arn:aws:lambda:us-east-1:767397659229:function:online-boutique-*"
-        ]
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["lambda:GetAccountSettings"]
-        Resource = "*"
-      },
-
-      # ---------- S3 backend ----------
-      # Keep your existing state bucket permissions.
-      {
+        # 6. Terraform State Management (The Catch)
         Effect = "Allow"
         Action = [
           "s3:ListBucket",
           "s3:GetObject",
-          "s3:HeadObject",
           "s3:PutObject",
-          "s3:DeleteObject"
+          "s3:DeleteObject",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
         ]
         Resource = [
-          "arn:aws:s3:::online-boutique-tfstate-767397659229",
-          "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
+          "arn:aws:s3:::<YOUR_TERRAFORM_STATE_BUCKET>",
+          "arn:aws:s3:::<YOUR_TERRAFORM_STATE_BUCKET>/*",
+          "arn:aws:dynamodb:us-east-1:767397659229:table/<YOUR_DYNAMODB_LOCK_TABLE>"
         ]
       }
     ]
