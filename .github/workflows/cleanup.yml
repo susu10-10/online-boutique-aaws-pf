@@ -1,0 +1,54 @@
+name: Clean Up Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: "Are You Sure? Type 'cleanupinfra' to confirm"
+        required: true
+        default: ""
+
+env:
+  TF_VERSION: 1.15.6
+
+permissions:
+  id-token: write
+  contents: read
+
+
+
+jobs:
+  cleanup-aws:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: infrastructure/envs/prod
+    steps:    
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      # The Safety Lock: Evaluating the user input before touching AWS
+      - name: Verify Teardown Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "cleanupinfra" ]; then
+            echo "Error: Confirmation string did not match. Aborting teardown."
+            exit 1
+          fi
+          echo "Confirmation matched. Proceeding with infrastructure destruction."
+        
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          # Use your exact IAM Role ARN here
+          role-to-assume: arn:aws:iam::767397659229:role/online-boutique-github-deploy-role
+          aws-region: us-east-1
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
