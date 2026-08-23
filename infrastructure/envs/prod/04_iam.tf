@@ -63,7 +63,7 @@ module "iam_iam-github-oidc-role" {
   subjects = [
     "repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:ref:refs/heads/main",
     "repo:susu10-10@75139663/online-boutique-aaws-pf@1340715756:pull_request"
-    ]
+  ]
   # # The Expanded Zero-Trust Boundary
   # subjects = [
   #   # Allow the main branch
@@ -120,4 +120,33 @@ resource "aws_iam_role" "ecs_task_role" {
       }
     ]
   })
+}
+
+
+# Granting the Mesh access to the Serverless Buffer
+
+resource "aws_iam_role_policy" "ecs_sqs_producer_policy" {
+  name = "OnlineBoutiqueSQSProducer"
+  # Replace 'aws_iam_role.ecs_task_role.id' with the actual ID of your Fargate task role
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sqs:SendMessage"
+        # Referencing the exact queue you just built
+        Resource = aws_sqs_queue.order_queue.arn
+      }
+    ]
+  })
+}
+
+
+# x-ray policy for the ecs task role
+
+resource "aws_iam_role_policy_attachment" "xray_daemon_access" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }

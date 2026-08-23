@@ -44,7 +44,7 @@ module "ecs_tasks_sg" {
 }
 
 
-# 3. The API Boundary: VPC Endpoints Security Group
+# VPC Endpoints Security Group
 resource "aws_security_group" "vpc_endpoints" {
   name        = "${var.project_name}-vpce-sg"
   description = "Allow TLS inbound from VPC tasks to AWS services"

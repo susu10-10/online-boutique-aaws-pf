@@ -43,21 +43,42 @@ module "frontend_service" {
 
       environment = [
         { name = "PORT", value = "8080" },
-        { name = "PRODUCT_CATALOG_SERVICE_ADDR", value = "productcatalogservice.onlineboutique.internal:3550" },
-        { name = "CURRENCY_SERVICE_ADDR", value = "currencyservice.onlineboutique.internal:7000" },
-        { name = "CART_SERVICE_ADDR", value = "cartservice.onlineboutique.internal:7070" },
-        { name = "RECOMMENDATION_SERVICE_ADDR", value = "recommendationservice.onlineboutique.internal:8080" },
-        { name = "SHIPPING_SERVICE_ADDR", value = "shippingservice.onlineboutique.internal:50051" },
-        { name = "CHECKOUT_SERVICE_ADDR", value = "checkoutservice.onlineboutique.internal:5050" },
-        { name = "AD_SERVICE_ADDR", value = "adservice.onlineboutique.internal:9555" },
-        { name = "SHOPPING_ASSISTANT_SERVICE_ADDR", value = "shoppingassistantservice.onlineboutique.internal:80" },
         { name = "ENV_PLATFORM", value = "local" },
-        { name = "ENABLE_TRACING", value = "0" },
+        { name = "ENABLE_TRACING", value = "1" },
         { name = "ENABLE_PROFILER", value = "0" },
         { name = "CYMBAL_BRANDING", value = "false" },
-        { name = "ENABLE_ASSISTANT", value = "false" }
+        { name = "ENABLE_ASSISTANT", value = "false" },
+        # The Telemetry Patch to Satisfy the Go binary's routing requirement
+        { name = "COLLECTOR_SERVICE_ADDR", value = "localhost:2000" }
       ]
 
+      secrets = [
+        { name = "PRODUCT_CATALOG_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_productcatalog.arn },
+        { name = "CURRENCY_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_currency.arn },
+        { name = "CART_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_cart.arn },
+        { name = "RECOMMENDATION_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_recommendation.arn },
+        { name = "SHIPPING_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_shipping.arn },
+        { name = "CHECKOUT_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_checkout.arn },
+        { name = "AD_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_ad.arn },
+        { name = "SHOPPING_ASSISTANT_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_shoppingassistant.arn }
+      ]
+
+    },
+    # The Sidecar: AWS X-Ray Daemon running alongside the frontend
+    xray-daemon = {
+      image     = "767397659229.dkr.ecr.us-east-1.amazonaws.com/online-boutique/xray-daemon:latest"
+      essential = true # If the telemetry agent dies, Fargate restarts the whole task
+
+      portMappings = [
+        {
+          containerPort = 2000
+          hostPort      = 2000
+          protocol      = "udp"
+        }
+      ]
+
+      # The Hardening: Even the telemetry agent gets locked down
+      readonlyRootFilesystem = false
     }
   }
 

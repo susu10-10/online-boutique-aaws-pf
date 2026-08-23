@@ -133,10 +133,17 @@ module "cart_service" {
       readonlyRootFilesystem = true
 
       environment = [
-        { name = "REDIS_ADDR", value = "redis-cart.onlineboutique.internal:6379" },
         { name = "DISABLE_PROFILER", value = "1" },
         { name = "ASPNETCORE_HTTP_PORTS", value = "7070" },
         { name = "DOTNET_EnableDiagnostics", value = "0" }
+      ]
+
+      # Fargate securely fetches the parameter at boot
+      secrets = [
+        {
+          name      = "REDIS_ADDR"
+          valueFrom = aws_ssm_parameter.cart_redis_addr.arn
+        }
       ]
     }
   }
@@ -192,20 +199,24 @@ module "checkout_service" {
           protocol      = "tcp"
         }
       ]
-      readonlyRootFilesystem = true
+      readonlyRootFilesystem = false
 
 
       environment = [
         { name = "PORT", value = "5050" },
-        { name = "PRODUCT_CATALOG_SERVICE_ADDR", value = "productcatalogservice.onlineboutique.internal:3550" },
-        { name = "SHIPPING_SERVICE_ADDR", value = "shippingservice.onlineboutique.internal:50051" },
-        { name = "PAYMENT_SERVICE_ADDR", value = "paymentservice.onlineboutique.internal:50051" },
-        { name = "EMAIL_SERVICE_ADDR", value = "emailservice.onlineboutique.internal:8080" },
-        { name = "CURRENCY_SERVICE_ADDR", value = "currencyservice.onlineboutique.internal:7000" },
-        { name = "CART_SERVICE_ADDR", value = "cartservice.onlineboutique.internal:7070" },
         { name = "DISABLE_PROFILER", value = "1" },
         { name = "ENABLE_TRACING", value = "0" },
         { name = "ENABLE_PROFILER", value = "0" }
+      ]
+
+      secrets = [
+        { name = "PAYMENT_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_payment.arn },
+        { name = "EMAIL_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_email.arn },
+        { name = "PRODUCT_CATALOG_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_productcatalog.arn },
+        { name = "CURRENCY_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_currency.arn },
+        { name = "CART_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_cart.arn },
+        { name = "RECOMMENDATION_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_recommendation.arn },
+        { name = "SHIPPING_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_shipping.arn }
       ]
     }
   }
@@ -512,9 +523,13 @@ module "recommendations_service" {
 
       environment = [
         { name = "PORT", value = "8080" },
-        { name = "PRODUCT_CATALOG_SERVICE_ADDR", value = "productcatalogservice.onlineboutique.internal:3550" },
         { name = "ENABLE_TRACING", value = "0" }
       ]
+
+      secrets = [
+        { name = "PRODUCT_CATALOG_SERVICE_ADDR", valueFrom = aws_ssm_parameter.global_productcatalog.arn }
+      ]
+
     }
   }
 

@@ -38,6 +38,18 @@ module "vpc-endpoints" {
       service_type        = "Interface"
       private_dns_enabled = true
       tags                = { Name = "${var.project_name}-secrets-vpce" }
+    },
+    ssm = {
+      service             = "ssm"
+      service_type        = "Interface"
+      private_dns_enabled = true
+      tags                = { Name = "${var.project_name}-ssm-vpce" }
+    },
+    xray = {
+      service             = "xray"
+      service_type        = "Interface"
+      private_dns_enabled = true
+      tags                = { Name = "${var.project_name}-xray-vpce" }
     }
   }
 
