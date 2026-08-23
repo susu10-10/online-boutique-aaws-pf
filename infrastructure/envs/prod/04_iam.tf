@@ -59,6 +59,94 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "arn:aws:s3:::online-boutique-tfstate-767397659229",
           "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
         ]
+      },
+            # IAM role/provider reads
+      {
+        Effect = "Allow"
+        Action = ["iam:GetRole"]
+        Resource = [
+          "arn:aws:iam::767397659229:role/online-boutique-ecs-task-execution-role",
+          "arn:aws:iam::767397659229:role/online-boutique-ecs-task-role",
+          "arn:aws:iam::767397659229:role/online-boutique-lambda-event-role",
+          "arn:aws:iam::767397659229:role/online-boutique-github-deploy-role"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["iam:GetOpenIDConnectProvider"]
+        Resource = [
+          "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
+        ]
+      },
+
+      # Route 53
+      {
+        Effect   = "Allow"
+        Action   = ["route53:GetHostedZone"]
+        Resource = ["arn:aws:route53:::hostedzone/Z09119203ES24GTLS3WTL"]
+      },
+
+      # SNS
+      {
+        Effect   = "Allow"
+        Action   = ["sns:GetTopicAttributes"]
+        Resource = ["arn:aws:sns:us-east-1:767397659229:online-boutique-order-notifications"]
+      },
+
+      # SQS
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:GetQueueAttributes"]
+        Resource = ["arn:aws:sqs:us-east-1:767397659229:online-boutique-orders"]
+      },
+
+      # SSM Parameters
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter"]
+        Resource = ["arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/prod/*"]
+      },
+
+      # Cognito
+      {
+        Effect   = "Allow"
+        Action   = ["cognito-idp:DescribeUserPool"]
+        Resource = ["arn:aws:cognito-idp:us-east-1:767397659229:userpool/us-east-1_ht38iFf0D"]
+      },
+
+      # API Gateway v2
+      {
+        Effect   = "Allow"
+        Action   = ["apigateway:GET"]
+        Resource = ["arn:aws:apigateway:us-east-1::/apis/48l9obgib4"]
+      },
+
+      # ACM certificate
+      {
+        Effect   = "Allow"
+        Action   = ["acm:DescribeCertificate"]
+        Resource = ["arn:aws:acm:us-east-1:767397659229:certificate/48c23dc1-d6b8-4297-b6d4-71e2fd61890c"]
+      },
+
+      # ECR repository reads
+      {
+        Effect   = "Allow"
+        Action   = ["ecr:DescribeRepositories"]
+        Resource = ["arn:aws:ecr:us-east-1:767397659229:repository/online-boutique/*"]
+      },
+
+      # EC2 VPC read/refresh
+      {
+        Effect   = "Allow"
+        Action   = ["ec2:DescribeVpcs"]
+        Resource = ["*"]
+      },
+
+      # CloudWatch Logs read/refresh
+      {
+        Effect   = "Allow"
+        Action   = ["logs:DescribeLogGroups"]
+        Resource = ["*"]
       }
     ]
   })
