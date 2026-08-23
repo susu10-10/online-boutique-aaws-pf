@@ -154,7 +154,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
         ]
       },
       {
-        # 6. Terraform State Management (The Catch)
+        # 6. Terraform State Management
         Effect = "Allow"
         Action = [
           "s3:ListBucket",
@@ -169,6 +169,19 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "arn:aws:s3:::online-boutique-tfstate-767397659229",
           "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
         ]
+      },
+      {
+        # 7. Terraform Metadata & Auditing Exception (AWS APIs that require wildcard resources)
+        Effect = "Allow"
+        Action = [
+          "ssm:DescribeParameters",
+          "cognito-idp:DescribeUserPoolDomain",
+          "route53:ListTagsForResource",
+          "logs:ListTagsForResource",
+          "lambda:GetEventSourceMapping",
+          "lambda:ListEventSourceMappings"
+        ]
+        Resource = "*"
       }
     ]
   })
