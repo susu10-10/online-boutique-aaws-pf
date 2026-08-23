@@ -21,11 +21,35 @@ resource "aws_cognito_user_pool" "boutique_users" {
 
 # Cognito App client for API Gateway 
 
+# resource "aws_cognito_user_pool_client" "boutique_frontend_client" {
+#   name                = "online-boutique-frontend-client"
+#   user_pool_id        = aws_cognito_user_pool.boutique_users.id
+#   generate_secret     = false # for modern single-page interacting with the API GW
+#   explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+# }
+
+# The Application Gateway: Cognito App Client (Upgraded for UI)
 resource "aws_cognito_user_pool_client" "boutique_frontend_client" {
-  name                = "online-boutique-frontend-client"
-  user_pool_id        = aws_cognito_user_pool.boutique_users.id
-  generate_secret     = false # for modern single-page interacting with the API GW
-  explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  name         = "boutique-frontend-client"
+  user_pool_id = aws_cognito_user_pool.boutique_users.id
+
+  explicit_auth_flows = [
+    "ALLOW_USER_PASSWORD_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
+  generate_secret = false
+
+  # The UI Integration Matrix
+  supported_identity_providers = ["COGNITO"]
+  callback_urls                = ["https://suworks.me/"] 
+  logout_urls                  = ["https://suworks.me/"]
+
+  # Enforce strict OAuth 2.0 protocol
+  allowed_oauth_flows_user_pool_client = true
+  
+  # "implicit" returns the token directly in the browser URL
+  allowed_oauth_flows                  = ["implicit", "code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
 }
 
 
@@ -54,7 +78,7 @@ resource "aws_security_group" "vpc_link_sg" {
   name        = "online-boutique-vpc-link-sg"
   description = "Allow API Gateway VPC Link to route to ALB"
   vpc_id      = module.vpc.vpc_id
-  
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -67,7 +91,7 @@ resource "aws_apigatewayv2_vpc_link" "internal_bridge" {
   name               = "boutique-vpc-link"
   security_group_ids = [aws_security_group.vpc_link_sg.id]
   # Drops the bridge into your exact private subnets from the outputs
-  subnet_ids         = module.vpc.private_subnets 
+  subnet_ids = module.vpc.private_subnets
 }
 
 # The Routing Integration & Stage
@@ -75,9 +99,9 @@ resource "aws_apigatewayv2_vpc_link" "internal_bridge" {
 resource "aws_apigatewayv2_integration" "alb_integration" {
   api_id           = aws_apigatewayv2_api.boutique_gateway.id
   integration_type = "HTTP_PROXY"
-  
-  integration_uri  = module.alb.listeners["https"].arn
-  
+
+  integration_uri = module.alb.listeners["http"].arn
+
   integration_method = "ANY"
   connection_type    = "VPC_LINK"
   connection_id      = aws_apigatewayv2_vpc_link.internal_bridge.id
@@ -87,7 +111,7 @@ resource "aws_apigatewayv2_route" "default_route" {
   api_id    = aws_apigatewayv2_api.boutique_gateway.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.alb_integration.id}"
-  
+
   # Every request requires a valid Cognito token
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
@@ -97,4 +121,14 @@ resource "aws_apigatewayv2_stage" "default_stage" {
   api_id      = aws_apigatewayv2_api.boutique_gateway.id
   name        = "$default"
   auto_deploy = true
+}
+
+
+# The Login Page: Cognito Hosted UI Domain
+
+resource "aws_cognito_user_pool_domain" "boutique_ui" {
+  # WARNING: This domain prefix must be globally unique across all of AWS.
+  # If it fails, add a random number to the end of the string.
+  domain       = "suworks-boutique-auth-page" 
+  user_pool_id = aws_cognito_user_pool.boutique_users.id
 }

@@ -2,9 +2,14 @@ module "alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 10.0.0"
 
-  name               = "${var.project_name}-alb"
-  vpc_id             = module.vpc.vpc_id
-  subnets            = module.vpc.public_subnets
+  name   = "${var.project_name}-alb"
+  vpc_id = module.vpc.vpc_id
+
+  # Moving the ALB off the public internet
+  internal = true
+  #subnets            = module.vpc.public_subnets
+  subnets = module.vpc.private_subnets
+
   load_balancer_type = "application"
 
   security_groups = [module.alb_sg.security_group_id]
@@ -37,20 +42,30 @@ module "alb" {
   listeners = {
     # Redirect all Port 80 traffic to Port 443
 
-    http-https-redirect = {
-      port     = 80
-      protocol = "HTTP"
-      redirect = {
-        port        = "443"
-        protocol    = "HTTPS"
-        status_code = "HTTP_301"
-      }
-    }
+    # http-https-redirect = {
+    #   port     = 80
+    #   protocol = "HTTP"
+    #   redirect = {
+    #     port        = "443"
+    #     protocol    = "HTTPS"
+    #     status_code = "HTTP_301"
+    #   }
+    #}
     # Terminate TLS and forward to the Fargate Container
     https = {
       port            = 443
       protocol        = "HTTPS"
       certificate_arn = module.acm.acm_certificate_arn
+
+      forward = {
+        target_group_key = "frontend_tg"
+      }
+    }
+
+    # since the alb is internal, it can accept decrypted traffice from the vpc link via the api gw
+    http = {
+      port     = 80
+      protocol = "HTTP"
 
       forward = {
         target_group_key = "frontend_tg"
