@@ -166,9 +166,8 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "dynamodb:DeleteItem"
         ]
         Resource = [
-          "arn:aws:s3:::<YOUR_TERRAFORM_STATE_BUCKET>",
-          "arn:aws:s3:::<YOUR_TERRAFORM_STATE_BUCKET>/*",
-          "arn:aws:dynamodb:us-east-1:767397659229:table/<YOUR_DYNAMODB_LOCK_TABLE>"
+          "arn:aws:s3:::online-boutique-tfstate-767397659229",
+          "arn:aws:s3:::online-boutique-tfstate-767397659229/*"
         ]
       }
     ]
