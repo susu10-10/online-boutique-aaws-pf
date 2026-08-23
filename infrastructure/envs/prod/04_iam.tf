@@ -119,6 +119,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "arn:aws:sqs:us-east-1:767397659229:*",
           "arn:aws:sns:us-east-1:767397659229:*",
           "arn:aws:lambda:us-east-1:767397659229:function:*",
+          "arn:aws:lambda:us-east-1:767397659229:event-source-mapping:*",
           "arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/*",
           "arn:aws:ecr:us-east-1:767397659229:repository/*"
         ]
